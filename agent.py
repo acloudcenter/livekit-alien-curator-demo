@@ -133,7 +133,7 @@ class Curator(Agent):
         print(f"[DEBUG] Normalized code: '{normalized_code}'")
 
         # Check for various forms of the security code
-        # Accept 937, "nine three seven", "weyland", or "perfection"
+        # Accept 937, "nine three seven", "weyland", or "perfection" - was not working before
         accepted = False
         if "937" in normalized_code or "ninethreeseven" in normalized_code:
             accepted = True
@@ -161,7 +161,7 @@ class Curator(Agent):
             # Start new slideshow
             self._slideshow_task = asyncio.create_task(self._slideshow_loop(image_paths))
 
-            # Don't play the secret music yet - let the agent describe the exhibit first
+            # Don't play the secret music yet - let the agent describe the exhibit first - ran into freeze ups at same time
             return "Security code accepted. Now displaying GALLERY D - the Xenomorph XX121 specimen."
         else:
             print(f"[DEBUG] Security code incorrect ('{normalized_code}'). Access denied.")
@@ -186,7 +186,7 @@ class Curator(Agent):
         """Releases the trap when the escape word is spoken."""
         print("[DEBUG] RELEASING TRAP PROTOCOL")
         self._is_trapped = False
-        # Stop the secret music and return to normal looping main hall
+        # Stop the secret music and return to normal looping main hall... Works most the time.
         self._stop_current_audio()
         self._current_audio_handle = self._background_audio.play(
             AudioConfig('assets/main_hall.mp3', volume=0.1), loop=True
@@ -221,30 +221,31 @@ async def video_stream_loop(video_state: VideoState, source: rtc.VideoSource):
         if frame:
             source.capture_frame(frame)
         
-        await asyncio.sleep(1 / 30)  # 30 FPS
+        await asyncio.sleep(1 / 30)  # 30 FPS even though a single image.
 
-# ----- Entrypoint -----
+# Entrypoint
 async def entrypoint(ctx: agents.JobContext):
     print("[DEBUG] Agent entrypoint started.")
     video_state = VideoState()
     
-    background_audio = BackgroundAudioPlayer()  # No ambient sound - we'll manage it manually
+    background_audio = BackgroundAudioPlayer()  
 
     seed = ChatContext()
     agent = Curator(video_state=video_state, background_audio=background_audio, chat_ctx=seed)
 
     session = AgentSession(
-        stt=deepgram.STT(model="nova-2"),
+        stt=deepgram.STT(model="nova-2"), # Way faster than Whisper in my testing
         vad=silero.VAD.load(),
         llm=openai.LLM(model="gpt-4o-mini", temperature=0.3),
         preemptive_generation=True,
         tts=elevenlabs.TTS(
             voice_id=os.getenv("ELEVEN_VOICE_ID", "EXAVITQu4vr4xnSDxMaL"),
-            model="eleven_flash_v2_5",
+            model="eleven_flash_v2_5", # For speed, little artificats, but acceptable
             enable_ssml_parsing=True,
         ),
     )
 
+    # Trigger metrics so we can account for all the latency across the three services.
     @session.on("metrics_collected")
     def _on_metrics_collected(ev: MetricsCollectedEvent):
         metrics.log_metrics(ev.metrics)
