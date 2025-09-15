@@ -9,6 +9,11 @@ dist/
 build/
 *.egg
 
+# Docker
+.Dockerfile
+Dockerfile
+.dockerignore
+
 # Virtual Environment
 .venv/
 venv/
@@ -52,3 +57,4 @@ tmp/
 
 # LiveKit TOML
 livekit.toml
+pyproject.toml
