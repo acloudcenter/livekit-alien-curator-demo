@@ -1,7 +1,7 @@
 [project]
 name = "livekit-museum-curator"
 version = "0.1.0"
-requires-python = ">=3.12"
+requires-python = ">=3.9"
 dependencies = [
     "livekit-agents[deepgram,elevenlabs,openai,silero,turn-detector]~=1.2",
     "livekit-plugins-noise-cancellation~=0.2",

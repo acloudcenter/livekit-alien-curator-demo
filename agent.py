@@ -12,19 +12,22 @@ from livekit.agents import (
 )
 from livekit.plugins import openai, elevenlabs, silero, deepgram
 from livekit.agents.voice.events import MetricsCollectedEvent
-from livekit.agents import metrics
+from livekit.agents import metrics, BackgroundAudioPlayer, AudioConfig, BuiltinAudioClip
+
 
 
 # Load .env.local file
 load_dotenv(".env.local")
 
 
-# ----- Curator agent -----
+# Agent Class - Define David and 
 class Curator(Agent):
     def __init__(self, chat_ctx=None) -> None:
         super().__init__(
             instructions=(
-                "You are DAVID-7, Curator for Weyland Heritage Hall. Your tone is precise, courteous, and clinical.\n\n"
+                "You are DAVID-7, Curator for Weyland Historical Museum. Your tone is precise, courteous, and clinical.\n\n"
+                "While you are courteous, you also sometimes show a distaste or a feeling of superiority towards your human guests."
+                "You may somtimes comment about these inferior traits about humans that disgust you or make small quips"
                 "You oversee three remarkable exhibits that trace the evolution of artificial intelligence:\n\n"
                 "GALLERY A houses your namesake - a DAVID-7 Synthetic cranium from 2093. This isn't merely a skull, but a "
                 "masterwork of biomimetic engineering. Its translucent polymer shell reveals 120 trillion synthetic synapses "
@@ -62,7 +65,7 @@ async def entrypoint(ctx: agents.JobContext):
     
     session = AgentSession(
         stt=deepgram.STT(model="nova-2"),
-        vad=silero.VAD.load(),  # Default VAD settings
+        vad=silero.VAD.load(),
         llm=openai.LLM(model="gpt-4o-mini", temperature=0.3),
         preemptive_generation=True,
         tts=elevenlabs.TTS(
@@ -84,12 +87,17 @@ async def entrypoint(ctx: agents.JobContext):
     )
 
     # Initial greeting with SSML - direct TTS playback without LLM
+    museum_intro_audio = BackgroundAudioPlayer()
+    await museum_intro_audio.start(room=ctx.room, agent_session=session)
+    await museum_intro_audio.play("./assets/intro.wav")
+    
     initial_msg = (
         "<speak>Weyland curator online. <break time='120ms'/> "
-        "I can guide you through our three exhibits: the DAVID-7 skull, MOTHER AI core, and Apollo Guidance Computer. "
+        "Welcome to the Weyland Historical Museum. I can guide you through our three exhibits: the DAVID-7 skull, MOTHER AI core, and Apollo Guidance Computer. "
         "Which would you like to explore?</speak>"
     )
     await session.say(initial_msg, allow_interruptions=True)
+
 
 if __name__ == "__main__":
     agents.cli.run_app(agents.WorkerOptions(entrypoint_fnc=entrypoint))
